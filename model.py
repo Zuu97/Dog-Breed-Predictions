@@ -3,7 +3,6 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 import logging
 logging.getLogger('tensorflow').disabled = True
-import base64
 import numpy as np
 from tensorflow.keras.models import model_from_json, Sequential, Model, load_model
 from tensorflow.keras.layers import Activation, Dense, Input
@@ -19,9 +18,8 @@ tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 class DogSimDetector(object):
     def __init__(self):
-        test_classes, test_images, test_byte_strings = load_test_data(test_dir, test_data_path)
+        test_classes, test_images, test_url_strings = load_test_data(test_dir, test_data_path)
         train_classes, train_images, _ = load_test_data(train_dir, train_data_path)
-        print(test_byte_strings) 
         
         if not (os.path.exists(model_architecture)  and os.path.exists(model_weights)):
             train_generator, validation_generator, test_generator = image_data_generator()
@@ -36,7 +34,7 @@ class DogSimDetector(object):
         self.train_images = train_images
         self.test_classes = test_classes
         self.test_images = test_images
-        self.test_byte_strings = test_byte_strings
+        self.test_url_strings = test_url_strings
 
     def model_conversion(self): #MobileNet is not build through sequential API, so we need to convert it to sequential
         mobilenet_functional = tf.keras.applications.MobileNet()
@@ -47,9 +45,9 @@ class DogSimDetector(object):
             model.add(layer)
         model.add(Dense(dense_1, activation='relu'))
         model.add(Dense(dense_2, activation='relu'))
-        model.add(Dense(dense_2, activation='relu'))
-        model.add(Dense(dense_3, activation='relu'))
-        model.add(Dense(dense_3, activation='relu'))
+        # model.add(Dense(dense_2, activation='relu'))
+        # model.add(Dense(dense_3, activation='relu'))
+        # model.add(Dense(dense_3, activation='relu'))
         model.add(Dense(dense_3, activation='relu'))
         model.add(Dense(num_classes, activation='softmax'))
         # model.summary()
@@ -85,12 +83,7 @@ class DogSimDetector(object):
 
         self.model = model_from_json(loaded_model_json)
         self.model.load_weights(model_weights)
-
-        # self.model.compile(
-        #                    loss='categorical_crossentropy', 
-        #                    optimizer='Adam', 
-        #                    metrics=['accuracy']
-        #                    )
+        
         print("Model Loaded")
 
     def predict_MobileNet(self):
@@ -123,11 +116,11 @@ class DogSimDetector(object):
         self.train_features = self.feature_model.predict(self.train_images)
         print("Done")
 
-    def predict_neighbour(self, byte_url):
-        # update_db(byte_url)
-        if byte_url in self.test_byte_strings:
+    def predict_neighbour(self, url_string):
+        # update_db(url_string)
+        if url_string in self.test_url_strings:
             n_neighbours = {}
-            img_id = self.test_byte_strings.tolist().index(byte_url)
+            img_id = self.test_url_strings.tolist().index(url_string)
             data = self.test_features[img_id]
             neighbor = NearestNeighbors(n_neighbors = 6)
             neighbor.fit(self.test_features)
@@ -144,8 +137,8 @@ class DogSimDetector(object):
                 plt.imshow(self.test_images[neighbour_img_id])
                 print("Neighbour image {} label : {}".format(i-1, self.test_classes[neighbour_img_id]))
 
-                base64_string = base64.b64encode(self.test_images[neighbour_img_id])
-                n_neighbours['neighbour ' + str(i-1)] = base64_string
+                url = self.test_url_strings[neighbour_img_id]
+                n_neighbours['neighbour ' + str(i-1)] = url
 
             plt.show()
 
@@ -165,4 +158,4 @@ class DogSimDetector(object):
 # if __name__ == "__main__":
 #     model = DogSimDetector()
 #     model.run()
-#     model.predict_neighbour(model.test_byte_strings[10])
+#     model.predict_neighbour('/home/isuru1997/Projects and Codes/SLIIT projects/Dog Breed Predictions/Test images/4/n02086079_2073.jpg')

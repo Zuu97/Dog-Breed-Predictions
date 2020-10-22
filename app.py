@@ -25,7 +25,8 @@ model.run()
 @app.route("/predict", methods=["POST"])
 def predict():
     message = request.get_json(force=True)
-    byte_url = int(message['byte_url'])
+    byte_url = str(message['image_url'])
+    print(byte_url)
     n_neighbours = model.predict_neighbour(byte_url)
 
     response = {
@@ -33,5 +34,5 @@ def predict():
     }
     return jsonify(response)
 
-if __name__ == "__main__":
+if __name__ == "__main__": 
     app.run(debug=True, host=host, port= port, threaded=False)

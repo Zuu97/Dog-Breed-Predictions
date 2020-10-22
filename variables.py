@@ -35,5 +35,5 @@ train_dir = os.path.join(os.getcwd(), 'Train images/')
 test_dir = os.path.join(os.getcwd(), 'Test images/')
 test_data_path = 'weights/Test_data.npz'
 train_data_path = 'weights/Train_data.npz'
-model_weights = "weights/doggy_mobilenet.h5"
-model_architecture = "weights/doggy_mobilenet.json"
+model_weights = "weights/doggy_mobilenetW1.h5"
+model_architecture = "weights/doggy_mobilenetW1.json"
