@@ -37,84 +37,12 @@ class DogSimDetector(object):
         self.test_url_strings = test_url_strings
 
     def model_conversion(self): #MobileNet is not build through sequential API, so we need to convert it to sequential
-        mobilenet_functional = tf.keras.applications.MobileNet()
-        # mobilenet_functional = tf.keras.applications.MobileNetV2()
-        model = Sequential()
-        for layer in mobilenet_functional.layers[:-1]:# remove the softmax in original model. because we have only 3 classes
-            layer.trainable = False
-            model.add(layer)
-        model.add(Dense(dense_1, activation='relu'))
-        model.add(Dense(dense_2, activation='relu'))
-        # model.add(Dense(dense_2, activation='relu'))
-        # model.add(Dense(dense_3, activation='relu'))
-        # model.add(Dense(dense_3, activation='relu'))
-        model.add(Dense(dense_3, activation='relu'))
-        model.add(Dense(num_classes, activation='softmax'))
-        # model.summary()
-        self.model = model
-
-    def train(self):
-        self.model.compile(
-                          optimizer='Adam',
-                          loss='categorical_crossentropy',
-                          metrics=['accuracy']
-                          )
-        self.model.fit_generator(
-                          self.train_generator,
-                          steps_per_epoch= self.train_step,
-                          validation_data= self.validation_generator,
-                          validation_steps = self.validation_step,
-                          epochs=epochs,
-                          verbose=verbose
-                        )
-
-    def save_model(self):
-        print("Model Saving !")
-        model_json = self.model.to_json()
-        with open(model_architecture, "w") as json_file:
-            json_file.write(model_json)
-        self.model.save_weights(model_weights)
-
-    def load_model(self):
-        K.clear_session() #clearing the keras session before load model
-        json_file = open(model_architecture, 'r')
-        loaded_model_json = json_file.read()
-        json_file.close()
-
-        self.model = model_from_json(loaded_model_json)
-        self.model.load_weights(model_weights)
-        
-        print("Model Loaded")
-
-    def predict_MobileNet(self):
-        Predictions = self.model.predict_generator(self.test_generator,steps=self.test_step)
-        P = np.argmax(Predictions,axis=1)
-        loss , accuracy = self.model.evaluate_generator(self.test_generator, steps=self.test_step)
-        print("test loss : ",loss)
-        print("test accuracy : ",accuracy)
-        # print(Predictions.shape)
-        # print("Predictions : ",Predictions)
-
-    def run_MobileNet(self):
-        if os.path.exists(model_weights):
-            self.load_model()
-        else:
-            self.model_conversion()
-            self.train()
-            self.save_model()
-        # self.predict_MobileNet()
-
-    def feature_extractor(self):
-        feature_model = Sequential()
-        for layer in self.model.layers[:-4]:# remove last 4 layers in original model. because we have only 3 classes
-            layer.trainable = False
-            feature_model.add(layer)
-        self.feature_model = feature_model
+        self.model = tf.keras.applications.MobileNet()
+        print("Model loaded")
 
     def extract_features(self):
-        self.test_features = self.feature_model.predict(self.test_images)
-        self.train_features = self.feature_model.predict(self.train_images)
-        print("Done")
+        self.test_features = self.model.predict(self.test_images)
+        # self.train_features = self.model.predict(self.train_images)
 
     def predict_neighbour(self, url_string):
         # update_db(url_string)
@@ -129,13 +57,14 @@ class DogSimDetector(object):
             fig.add_subplot(2, 3, 1)
             plt.title('Input Image')
             plt.imshow(self.test_images[img_id])
-            print("\nInput image label : {}".format(self.test_classes[img_id]))
+            print("\nInput image label : {}".format(int(self.test_classes[img_id])))
             for i in range(2, 7):
                 neighbour_img_id = result[i-1]
                 fig.add_subplot(2, 3, i)
                 plt.title('Neighbour {}'.format(i-1))
                 plt.imshow(self.test_images[neighbour_img_id])
-                print("Neighbour image {} label : {}".format(i-1, self.test_classes[neighbour_img_id]))
+                label = self.test_classes[neighbour_img_id]
+                print("Neighbour image {} label : {}".format(i-1, int(label)))
 
                 url = self.test_url_strings[neighbour_img_id]
                 n_neighbours['neighbour ' + str(i-1)] = url
@@ -147,15 +76,13 @@ class DogSimDetector(object):
         else:
             print("Byte Url doesn't exists")
 
-    def run_feature_model(self):
-        self.feature_extractor()
-        self.extract_features()
-
     def run(self):
-        self.run_MobileNet()
-        self.run_feature_model()
+        self.model_conversion()
+        self.extract_features()
+        print("Done")
 
 # if __name__ == "__main__":
 #     model = DogSimDetector()
 #     model.run()
-#     model.predict_neighbour('/home/isuru1997/Projects and Codes/SLIIT projects/Dog Breed Predictions/Test images/4/n02086079_2073.jpg')
+#     k = model.predict_neighbour('/home/isuru1997/Projects and Codes/SLIIT projects/Dog Breed Predictions/Test images/4/n02086079_2073.jpg')
+#     print(k)
