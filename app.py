@@ -13,6 +13,7 @@ from util import *
 from flask import Flask
 from flask import jsonify
 from flask import request
+import werkzeug
 '''
         python -W ignore app.py
 '''
@@ -24,9 +25,12 @@ model.run()
 
 @app.route("/predict", methods=["POST"])
 def predict():
-    message = request.get_json(force=True)
-    byte_url = str(message['image_url'])
-    n_neighbours = model.predict_neighbour(byte_url)
+#     message = request.get_json(force=True)
+#     byte_url = str(message['image_url'])
+
+      imagefile = request.files['image']
+      filename = werkzeug.utils.secure_filename(imagefile.filename)
+      n_neighbours = model.predict_neighbour(imagefile)
 
     response = {
             'n_neighbours': n_neighbours
