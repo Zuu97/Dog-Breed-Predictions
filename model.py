@@ -42,39 +42,30 @@ class DogSimDetector(object):
 
     def extract_features(self):
         self.test_features = self.model.predict(self.test_images)
-        # self.train_features = self.model.predict(self.train_images)
+        self.neighbor = NearestNeighbors(n_neighbors = 6)
+        self.neighbor.fit(self.test_features)
 
-    def predict_neighbour(self, url_string):
-        # update_db(url_string)
-        if url_string in self.test_url_strings:
-            n_neighbours = {}
-            img_id = self.test_url_strings.tolist().index(url_string)
-            data = self.test_features[img_id]
-            neighbor = NearestNeighbors(n_neighbors = 6)
-            neighbor.fit(self.test_features)
-            result = neighbor.kneighbors([data])[1].squeeze()
-            fig=plt.figure(figsize=(8, 8))
-            fig.add_subplot(2, 3, 1)
-            plt.title('Input Image')
-            plt.imshow(self.test_images[img_id])
-            print("\nInput image label : {}".format(int(self.test_classes[img_id])))
-            for i in range(2, 7):
-                neighbour_img_id = result[i-1]
-                fig.add_subplot(2, 3, i)
-                plt.title('Neighbour {}'.format(i-1))
-                plt.imshow(self.test_images[neighbour_img_id])
-                label = self.test_classes[neighbour_img_id]
-                print("Neighbour image {} label : {}".format(i-1, int(label)))
+    def predict_neighbour(self, dogimage, img_path):
+        # update_db(img_path, lost_table)
+        n_neighbours = {}
+        data = self.model.predict(np.array([dogimage])).squeeze()
+        result = self.neighbor.kneighbors([data])[1].squeeze()
+        fig=plt.figure(figsize=(8, 8))
+        fig.add_subplot(2, 3, 1)
+        plt.title('Input Image')
+        plt.imshow(dogimage)
+        for i in range(2, 7):
+            neighbour_img_id = result[i-1]
+            fig.add_subplot(2, 3, i)
+            plt.title('Neighbour {}'.format(i-1))
+            plt.imshow(self.test_images[neighbour_img_id])
+            label = self.test_classes[neighbour_img_id]
+            print("Neighbour image {} label : {}".format(i-1, int(label)))
 
-                url = self.test_url_strings[neighbour_img_id]
-                n_neighbours['neighbour ' + str(i-1)] = url
+            n_neighbours['neighbour ' + str(i-1)] = open(self.test_url_strings[neighbour_img_id], 'rb')
+        plt.show()
 
-            plt.show()
-
-            return n_neighbours
-
-        else:
-            print("Byte Url doesn't exists")
+        return n_neighbours
 
     def run(self):
         self.model_conversion()

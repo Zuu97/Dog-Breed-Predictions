@@ -85,17 +85,13 @@ def load_test_data(data_path, save_path):
     classes, images, url_strings = shuffle(classes, images, url_strings)
     return classes, images, url_strings
 
-def update_db(url_string):
+def update_db(img_path, table_name):
     engine = create_engine(db_url)
     if table_name in sqlalchemy.inspect(engine).get_table_names():
         data = pd.read_sql_table(table_name, db_url)
         df_length = len(data.values)
-        data.loc[df_length+1] = decode_url_string(url_string)
+        df.loc[df_length]['image path'] = img_path
         with engine.connect() as conn, conn.begin():
             data.to_sql(table_name, conn, if_exists='append', index=False)
     else:
         print("Create a Table named {}".format(table_name))
-
-# test_classes, test_images, test_url_strings = load_test_data(test_dir, test_data_path)
-# print(test_url_strings.shape)
-# print(test_url_strings.tolist().index('VGVzdCBpbWFnZXMvNFxuMDIwODYwNzlfMTc1OS5qcGc='))
