@@ -62,7 +62,7 @@ class DogSimDetector(object):
             label = self.test_classes[neighbour_img_id]
             print("Neighbour image {} label : {}".format(i-1, int(label)))
 
-            n_neighbours['neighbour ' + str(i-1)] = open(self.test_url_strings[neighbour_img_id], 'rb')
+            n_neighbours['neighbour ' + str(i-1)] = "{}".format(self.test_url_strings[neighbour_img_id])
         plt.show()
 
         return n_neighbours
@@ -70,10 +70,3 @@ class DogSimDetector(object):
     def run(self):
         self.model_conversion()
         self.extract_features()
-        print("Done")
-
-# if __name__ == "__main__":
-#     model = DogSimDetector()
-#     model.run()
-#     k = model.predict_neighbour('/home/isuru1997/Projects and Codes/SLIIT projects/Dog Breed Predictions/Test images/4/n02086079_2073.jpg')
-#     print(k)

@@ -68,10 +68,9 @@ def predict():
         dogimage = dogimage*rescale
         n_neighbours = model.predict_neighbour(dogimage, img_path)
 
-        # response = {
-        #             "n_neighbours": n_neighbours
-        #            }
-        response = requests.post(local_url, files=n_neighbours)
+        response = {
+                    "n_neighbours": n_neighbours
+                   }
         return jsonify(response)
 
       else:
