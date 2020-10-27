@@ -32,11 +32,11 @@ db_url = 'mysql+pymysql://root:{}@localhost:3306/doggy_similarity'.format(root_p
 local_url = 'http://0.0.0.0:5000/predict'
 
 # data directories and model paths
-found_img_dir = os.path.join(os.getcwd(),'Found Dogs')
-lost_img_dir = os.path.join(os.getcwd(),'Lost Dogs')
-train_dir = os.path.join(os.getcwd(), 'Train images/')
-test_dir = os.path.join(os.getcwd(), 'Test images/')
-test_data_path = 'weights/Test_data.npz'
-train_data_path = 'weights/Train_data.npz'
-model_weights = "weights/doggy_mobilenetW1.h5"
-model_architecture = "weights/doggy_mobilenetW1.json"
+found_img_dir = os.path.join(os.getcwd(),'data/Found Dogs')
+lost_img_dir = os.path.join(os.getcwd(),'data/Lost Dogs')
+train_dir = os.path.join(os.getcwd(), 'data/Train images/')
+test_dir = os.path.join(os.getcwd(), 'data/Test images/')
+test_data_path = 'data/weights/Test_data.npz'
+train_data_path = 'data/weights/Train_data.npz'
+model_weights = "data/weights/doggy_mobilenetW1.h5"
+model_architecture = "data/weights/doggy_mobilenetW1.json"
