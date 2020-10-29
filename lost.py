@@ -18,6 +18,8 @@ from flask import Flask
 from flask import jsonify
 from flask import request
 import werkzeug
+import warnings
+warnings.simplefilter("ignore", DeprecationWarning)
 '''
         python -W ignore app.py
 '''

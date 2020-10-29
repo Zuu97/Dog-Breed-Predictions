@@ -21,14 +21,14 @@ class DogSimDetector(object):
         test_classes, test_images, test_url_strings = load_test_data(test_dir, test_data_path)
         train_classes, train_images, _ = load_test_data(train_dir, train_data_path)
         
-        if not (os.path.exists(model_architecture)  and os.path.exists(model_weights)):
-            train_generator, validation_generator, test_generator = image_data_generator()
-            self.test_generator = test_generator
-            self.train_generator = train_generator
-            self.validation_generator = validation_generator
-            self.train_step = self.train_generator.samples // batch_size
-            self.validation_step = self.validation_generator.samples // valid_size
-            self.test_step = self.test_generator.samples // batch_size
+        # if not (os.path.exists(model_architecture)  and os.path.exists(model_weights)):
+        #     train_generator, validation_generator, test_generator = image_data_generator()
+        #     self.test_generator = test_generator
+        #     self.train_generator = train_generator
+        #     self.validation_generator = validation_generator
+        #     self.train_step = self.train_generator.samples // batch_size
+        #     self.validation_step = self.validation_generator.samples // valid_size
+        #     self.test_step = self.test_generator.samples // batch_size
 
         self.train_classes = train_classes
         self.train_images = train_images
@@ -37,7 +37,7 @@ class DogSimDetector(object):
         self.test_url_strings = test_url_strings
 
     def model_conversion(self): #MobileNet is not build through sequential API, so we need to convert it to sequential
-        self.model = tf.keras.applications.MobileNet()
+        self.model = tf.keras.applications.MobileNetV2()
         print("Model loaded")
 
     def extract_features(self):
