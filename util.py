@@ -30,14 +30,16 @@ def image_data_generator():
                                     color_mode = color_mode,
                                     batch_size = batch_size,
                                     classes = classes,
+                                    subset = 'training',
                                     shuffle = True)
 
-    validation_generator = test_datagen.flow_from_directory(
+    validation_generator = train_datagen.flow_from_directory(
                                     train_dir,
                                     target_size = target_size,
                                     color_mode = color_mode,
                                     batch_size = valid_size,
                                     classes = classes,
+                                    subset = 'validation',
                                     shuffle = True)
 
     test_generator = test_datagen.flow_from_directory(
@@ -76,11 +78,11 @@ def load_test_data(data_path, save_path):
         url_strings = np.array(url_strings)
         np.savez(save_path, name1=images, name2=classes, name3=url_strings)
     else:
-        print("{} Images Loaded".format(data_name))
         data = np.load(save_path, allow_pickle=True)
         images = data['name1']
         classes = data['name2']
         url_strings = data['name3']
+        print("{} Images Loaded".format(data_name))
 
     classes, images, url_strings = shuffle(classes, images, url_strings)
     return classes, images, url_strings

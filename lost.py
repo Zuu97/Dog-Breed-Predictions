@@ -6,7 +6,7 @@ import cv2 as cv
 from variables import *
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-from model import DogSimDetector
+from tf_model import DogSimDetector
 import logging
 logging.getLogger('tensorflow').disabled = True
 from tensorflow.keras.preprocessing.image import img_to_array
