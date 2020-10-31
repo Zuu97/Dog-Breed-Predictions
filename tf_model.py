@@ -1,11 +1,12 @@
 import os
+import pickle
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 import logging
 logging.getLogger('tensorflow').disabled = True
 import numpy as np
 from tensorflow.keras.models import model_from_json, Sequential, Model, load_model
-from tensorflow.keras.layers import Activation, Dense, Input
+from tensorflow.keras.layers import Activation, Dense, Input, Flatten
 from tensorflow.keras import backend as K
 from matplotlib import pyplot as plt
 from sklearn.neighbors import NearestNeighbors
@@ -19,7 +20,6 @@ tf.config.experimental.set_memory_growth(physical_devices[0], True)
 class DogSimDetector(object):
     def __init__(self):
         test_classes, test_images, test_url_strings = load_test_data(test_dir, test_data_path)
-        train_classes, train_images, _ = load_test_data(train_dir, train_data_path)
         
         if not os.path.exists(model_weights):
             train_generator, validation_generator, test_generator = image_data_generator()
@@ -30,28 +30,34 @@ class DogSimDetector(object):
             self.validation_step = self.validation_generator.samples // valid_size
             self.test_step = self.test_generator.samples // batch_size
 
-        self.train_classes = train_classes
-        self.train_images = train_images
         self.test_classes = test_classes
         self.test_images = test_images
         self.test_url_strings = test_url_strings
 
     def model_conversion(self):
-        mobilenet_functional = tf.keras.applications.MobileNet()
-        model = Sequential()
-        model.add(Input(shape=input_shape))
-        for layer in mobilenet_functional.layers[1:-1]:
-            layer.trainable = False
-            model.add(layer)
-        model.add(Dense(dense_1, activation='relu'))
-        model.add(Dense(dense_2, activation='relu'))
-        model.add(Dense(dense_2, activation='relu'))
-        model.add(Dense(dense_3, activation='relu'))
-        model.add(Dense(dense_3, activation='relu'))
-        model.add(Dense(dense_3, activation='relu'))
-        model.add(Dense(num_classes, activation='softmax'))
-        # model.summary()
+        functional_model = tf.keras.applications.MobileNetV2(
+                                                    # include_top=False,
+                                                    weights="imagenet",
+                                                    # input_shape=input_shape
+                                                             )
+        functional_model.trainable = False
+        inputs = functional_model.input
+
+        x = functional_model.layers[-2].output
+        x = Dense(dense_1, activation='relu')(x)
+        x = Dense(dense_1, activation='relu')(x)
+        x = Dense(dense_2, activation='relu')(x)
+        x = Dense(dense_3, activation='relu')(x)
+        x = Dense(dense_3, activation='relu')(x)
+        x = Dense(dense_3, activation='relu')(x)
+        outputs = Dense(num_classes, activation='softmax')(x)
+
+        model = Model(
+                inputs =inputs,
+                outputs=outputs
+                    )
         self.model = model
+        self.model.summary()
 
     def train(self):
         self.model.compile(
@@ -69,12 +75,13 @@ class DogSimDetector(object):
                         )
 
     def save_model(self):
-        self.model.save(model_weights)
+        self.feature_model.save(model_weights)
+        print("Feature CNN Model Saved")
 
     def load_model(self):
         K.clear_session() #clearing the keras session before load model
-        self.model = load_model(model_weights)
-        print("Model Loaded")
+        self.feature_model = load_model(model_weights)
+        print("Feature CNN Model Loaded")
 
     def Evaluation(self):
         Predictions = self.model.predict_generator(self.test_generator,steps=self.test_step)
@@ -84,32 +91,75 @@ class DogSimDetector(object):
         print("test accuracy : ",accuracy)
 
     def run_MobileNet(self):
-        if os.path.exists(model_weights):
-            self.load_model()
-        else:
-            self.model_conversion()
-            self.train()
-            self.save_model()
-        # self.Evaluation()
+        self.model_conversion()
+        self.train()
+        self.Evaluation()
 
     def feature_extraction_model(self):
-        feature_model = Sequential()
-        for layer in self.model.layers[:-4]:# remove last 4 layers in original model. because we have only 3 classes
-            layer.trainable = False
-            feature_model.add(layer)
+        inputs = self.model.input
+        outputs = self.model.layers[-1].output
+        feature_model = Model(
+                        inputs =inputs,
+                        outputs=outputs
+                            )
         self.feature_model = feature_model
+        # self.feature_model.summary()
+
+    def TFconverter(self):
+        converter = tf.lite.TFLiteConverter.from_keras_model(self.feature_model)
+        converter.optimizations = [tf.lite.Optimize.DEFAULT]
+        tflite_model = converter.convert()
+
+        with open(model_converter, 'wb') as file:
+            file.write(tflite_model)
+
+    def TFinterpreter(self):
+        # Load the TFLite model and allocate tensors.
+        self.interpreter = tf.lite.Interpreter(model_path=model_converter)
+        self.interpreter.allocate_tensors()
+
+        self.input_details = self.interpreter.get_input_details()
+        self.output_details = self.interpreter.get_output_details()
+
+        self.neighbor = pickle.load(open(n_neighbour_weights, 'rb'))
+
+    def Inference(self, img):
+        input_shape = self.input_details[0]['shape']
+        input_data = np.array([img], dtype=np.float32)
+
+        assert np.array_equal(input_shape, input_data.shape), "Input tensor hasn't correct dimension"
+
+        self.interpreter.set_tensor(self.input_details[0]['index'], input_data)
+
+        self.interpreter.invoke()
+
+        output_data = self.interpreter.get_tensor(self.output_details[0]['index'])
+        return output_data
 
     def extract_features(self):
-        self.test_features = self.feature_model.predict(self.test_images)
-        self.neighbor = NearestNeighbors(n_neighbors = 6)
-        self.neighbor.fit(self.test_features)
+        if not os.path.exists(n_neighbour_weights):
+            self.test_features = self.feature_model.predict(self.test_images)
+            self.neighbor = NearestNeighbors(n_neighbors = 6)
+            self.neighbor.fit(self.test_features)
+            pickle.dump(self.neighbor, open(n_neighbour_weights, 'wb'))
 
+    def run(self):
+        if not os.path.exists(model_converter):
+            if not os.path.exists(model_weights):
+                self.run_MobileNet()
+                self.feature_extraction_model()
+                self.save_model()
+            else:
+                self.load_model()
+            self.extract_features()
+            self.TFconverter()
+        else:
+            self.TFinterpreter()        
+            print(self.test_classes)
     def predict_neighbour(self, dogimage, img_path):
         # update_db(img_path, lost_table)
         n_neighbours = {}
-        data = self.feature_model.predict(np.array([dogimage])).squeeze()
-        data = data.reshape(1, -1)
-        print(data.shape)
+        data = self.Inference(dogimage)
         result = self.neighbor.kneighbors(data)[1].squeeze()
         fig=plt.figure(figsize=(8, 8))
         fig.add_subplot(2, 3, 1)
@@ -123,19 +173,10 @@ class DogSimDetector(object):
             label = self.test_classes[neighbour_img_id]
             print("Neighbour image {} label : {}".format(i-1, int(label)))
 
-            n_neighbours["neighbour ".format(i-1)] = "{}".format(self.test_url_strings[neighbour_img_id])
+            n_neighbours["neighbour {}".format(i-1)] = "{}".format(self.test_url_strings[neighbour_img_id])
         plt.show()
 
         return n_neighbours
 
-    def run_feature_model(self):
-        self.feature_extraction_model()
-        self.extract_features()
-
-    def run(self):
-        self.run_MobileNet()
-        self.run_feature_model()
-
-
-# model = DogSimDetector()
-# model.run()
+model = DogSimDetector()
+model.run()
