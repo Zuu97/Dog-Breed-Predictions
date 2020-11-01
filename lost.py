@@ -50,7 +50,7 @@ def preprocess_image(image, target_size):
     if image.shape[-1] == 1:
         return False
     else:
-        image = cv.resize(image, target_size)
+        image = cv.resize(image, target_size, cv.INTER_AREA)
         return image
 
 def save_image(image, img_path):
@@ -67,7 +67,8 @@ def predict():
       if dogimage.any():
         img_path = get_image_path()
         save_image(dogimage, img_path)   
-        dogimage = dogimage*rescale
+        dogimage = preprocessing_function(dogimage)
+        dogimage = dogimage.astype(np.float32)
         n_neighbours = model.predict_neighbour(dogimage, img_path)
 
         response = {

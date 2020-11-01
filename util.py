@@ -10,18 +10,24 @@ import sqlalchemy
 
 from variables import*
 
+def preprocessing_function(img):
+    img = tf.keras.applications.mobilenet_v2.preprocess_input(img)
+    return img
+
 def image_data_generator():
     train_datagen = tf.keras.preprocessing.image.ImageDataGenerator(
-                                    rescale = rescale,
                                     rotation_range = rotation_range,
                                     shear_range = shear_range,
                                     zoom_range = zoom_range,
                                     width_shift_range=shift_range,
                                     height_shift_range=shift_range,
                                     horizontal_flip = True,
-                                    validation_split= val_split
+                                    validation_split= val_split,
+                                    preprocessing_function=preprocessing_function
                                     )
-    test_datagen = tf.keras.preprocessing.image.ImageDataGenerator(rescale = rescale)
+    test_datagen = tf.keras.preprocessing.image.ImageDataGenerator(
+                                    preprocessing_function=preprocessing_function
+                                    )
 
 
     train_generator = train_datagen.flow_from_directory(
@@ -66,8 +72,9 @@ def load_test_data(data_path, save_path):
             for img_name in os.listdir(label_dir):
                 img_path = os.path.join(label_dir, img_name)
                 img = cv.imread(img_path)
-                img = cv.cvtColor(img, cv.COLOR_BGR2RGB)*rescale
-                img = cv.resize(img, target_size)
+                img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+                img = preprocessing_function(img)
+                img = cv.resize(img, target_size, cv.INTER_AREA).astype(np.float32)
 
                 images.append(img)
                 classes.append(int(label))
@@ -97,3 +104,11 @@ def update_db(img_path, table_name):
             data.to_sql(table_name, conn, if_exists='append', index=False)
     else:
         print("Create a Table named {}".format(table_name))
+
+def nearest_neighbour_prediction(result, test_classes):
+    labels = [int(test_classes[neighbour_img_id]) for neighbour_img_id in result[1:]]
+    label = np.bincount(labels).argmax()
+    print(np.bincount(labels))
+    labels = np.array(labels)
+    correct_idx = np.where(labels == label)[0]
+    return result[correct_idx[:thres_neighbours+1]]
