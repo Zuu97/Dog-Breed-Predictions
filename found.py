@@ -23,11 +23,13 @@ import sqlalchemy
 
 '''
         python -W ignore found.py
+        
+        This flask API use to upload details when someone found a dog.
 '''
 
 app = Flask(__name__)
 
-def preprocess_image(image, target_size):
+def preprocess_image(image, target_size): # Get the image, then resize and convert 3D tensor to 4D tensor
     if image.mode != "RGB":
         image = image.convert("RGB")
     image = image.resize(target_size)
@@ -46,7 +48,7 @@ def get_image_path():
         img_path = os.path.join(found_img_dir,'1.png') # return /home/isuru1997/Projects and Codes/SLIIT projects/Dog Breed Predictions/Found Images/1.png
     return img_path
     
-def update_found_table(img_path):
+def update_found_table(img_path): # update the image url in the data base
     engine = create_engine(db_url)
     if table_name in sqlalchemy.inspect(engine).get_table_names():
         data = pd.read_sql_table(table_name, db_url)
@@ -67,7 +69,7 @@ def found():
 
     image = Image.open(io.BytesIO(decoded))
     processed_image = preprocess_image(image)
-    cv2.imwrite(img_path, processed_image)
+    cv2.imwrite(img_path, processed_image) # save uploaded data into 
     update_found_table(img_path)
 
     response = {
